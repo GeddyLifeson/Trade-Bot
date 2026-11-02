@@ -81,6 +81,28 @@ def list_alpaca():
             for a in data if a.get("class", "us_equity") == "us_equity"]
 
 
+_NT_EXCHANGE = {"A": "AMEX", "N": "NYSE", "P": "ARCA", "Z": "BATS", "V": "IEX"}
+
+
+def parse_nasdaqtrader(nasdaq_txt, other_txt):
+    """Nasdaq Trader's symbol directory: every exchange-listed stock and ETF, test issues skipped."""
+    out = []
+    for text, sym_col, exch in ((nasdaq_txt, "Symbol", None), (other_txt, "ACT Symbol", "Exchange")):
+        for r in csv.DictReader(io.StringIO(text), delimiter="|"):
+            if not r.get(sym_col) or r.get("Test Issue") != "N":   # also drops the "File Creation Time" footer
+                continue
+            out.append({"symbol": r[sym_col].strip(), "name": r.get("Security Name") or "", "asset_class": "us_equity",
+                        "exchange": _NT_EXCHANGE.get(r[exch], r[exch]) if exch else "NASDAQ", "status": "active"})
+    return out
+
+
+def list_nasdaqtrader():
+    """Keyless fallback listing for equities. Current listings only; delisted ones are kept by the
+    catalogue merge once seen. Alpaca's listing replaces it as the authority when keys are set."""
+    base = "https://www.nasdaqtrader.com/dynamic/symdir/"
+    return parse_nasdaqtrader(_text(base + "nasdaqlisted.txt", "nasdaqtrader"), _text(base + "otherlisted.txt", "nasdaqtrader"))
+
+
 def list_sec():
     """SEC's ticker file. Fallback listing when Alpaca keys are missing; current tickers only."""
     data = _json("https://www.sec.gov/files/company_tickers_exchange.json", "sec tickers")

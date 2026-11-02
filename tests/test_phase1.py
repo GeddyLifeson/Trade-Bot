@@ -63,6 +63,14 @@ class CatalogueTest(unittest.TestCase):
 
 
 class ParseTest(TempData):
+    def test_nasdaqtrader_skips_test_issues_and_footer(self):
+        nasdaq = ("Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|ETF|NextShares\n"
+                  "AAPL|Apple Inc.|Q|N|N|100|N|N\nZXZZT|Test|G|Y|N|100|N|N\nFile Creation Time: 1102202612:11|||||||\n")
+        other = ("ACT Symbol|Security Name|Exchange|CQS Symbol|ETF|Round Lot Size|Test Issue|NASDAQ Symbol\n"
+                 "SPY|SPDR S&P 500|P|SPY|Y|100|N|SPY\nFile Creation Time: 1102202612:11||||||\n")
+        rows = sources.parse_nasdaqtrader(nasdaq, other)
+        self.assertEqual([(r["symbol"], r["exchange"]) for r in rows], [("AAPL", "NASDAQ"), ("SPY", "ARCA")])
+
     def test_stooq_zip_loads_and_maps_tickers(self):
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as z:

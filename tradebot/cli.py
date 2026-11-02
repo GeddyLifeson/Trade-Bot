@@ -32,11 +32,12 @@ def cmd_catalogue():
     try:
         listings["alpaca"] = sources.list_alpaca()
     except (sources.MissingKey, sources.SourceError) as e:
-        notes.append(f"alpaca: {e}; SEC fallback")
-        try:
-            listings["sec"] = sources.list_sec()
-        except sources.SourceError as e2:
-            notes.append(str(e2))
+        notes.append(f"alpaca: {e}; keyless fallbacks")
+        for name, fn in (("nasdaqtrader", sources.list_nasdaqtrader), ("sec", sources.list_sec)):
+            try:
+                listings[name] = fn()
+            except sources.SourceError as e2:
+                notes.append(str(e2))
     for name, fn in (("coinbase", sources.list_coinbase), ("kraken", sources.list_kraken)):
         try:
             listings[name] = fn()
